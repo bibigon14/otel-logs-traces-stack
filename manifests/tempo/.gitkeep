@@ -1,5 +1,0 @@
-# Core Tempo manifests (single-binary mode) land here in v0.1.
-# Planned files:
-#   configmap.yaml      - tempo config (72h local retention, OTLP ingest)
-#   statefulset.yaml    - tempo pod + 10Gi PVC for blocks/wal
-#   service.yaml        - ClusterIP :4317 (OTLP) + :3200 (query)

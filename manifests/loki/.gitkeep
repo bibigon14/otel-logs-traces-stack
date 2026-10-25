@@ -1,5 +1,0 @@
-# Core Loki manifests (single-binary mode) land here in v0.1.
-# Planned files:
-#   configmap.yaml      - loki config (schema v13, boltdb-shipper + filesystem)
-#   statefulset.yaml    - loki pod + 20Gi PVC for chunks/index
-#   service.yaml        - ClusterIP :3100 for OTEL Collector + Grafana

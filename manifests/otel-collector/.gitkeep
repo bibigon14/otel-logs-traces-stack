@@ -1,5 +1,0 @@
-# OpenTelemetryCollector CRs (requires opentelemetry-operator installed cluster-wide).
-# Planned files:
-#   otelcol-gateway.yaml  - Deployment mode, receives OTLP, exports to Loki/Tempo/VMSingle
-#   otelcol-agent.yaml    - DaemonSet mode, hostmetrics + k8s_cluster, OTLP -> gateway
-#   alloy.yaml            - Grafana Alloy DaemonSet for pod stdout -> Loki

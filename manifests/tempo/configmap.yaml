@@ -1,0 +1,65 @@
+---
+# Tempo single-binary config with local filesystem backend. Trace
+# retention is 72h to stay well inside a 10Gi PVC; a real deployment
+# would push to object storage and keep weeks or months.
+#
+# metrics_generator is intentionally disabled - it would need
+# prometheus-remote-write back to VMSingle, which widens the scope of
+# this project beyond "logs and traces half of the triad". Enabling
+# it is a straightforward v0.2 change.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: tempo
+    app.kubernetes.io/component: single-binary
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+      grpc_listen_port: 9095
+      log_level: info
+
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+
+    ingester:
+      trace_idle_period: 10s
+      max_block_bytes: 1000000
+      max_block_duration: 5m
+
+    compactor:
+      compaction:
+        compaction_window: 1h
+        max_block_bytes: 100000000
+        block_retention: 72h
+        compacted_block_retention: 10m
+
+    storage:
+      trace:
+        backend: local
+        wal:
+          path: /var/tempo/wal
+        local:
+          path: /var/tempo/blocks
+        pool:
+          max_workers: 100
+          queue_depth: 10000
+
+    overrides:
+      defaults:
+        ingestion:
+          max_traces_per_user: 50000
+        metrics_generator:
+          processors: []
+
+    usage_report:
+      reporting_enabled: false

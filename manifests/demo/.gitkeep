@@ -1,5 +1,0 @@
-# Demo workload that emits structured JSON logs + OTLP traces, so the
-# triad has traffic to show on screenshots.
-# Planned files:
-#   trace-emitter-deployment.yaml - small Go service, OTLP SDK, slog JSON
-#   trace-emitter-image.md        - build + push notes (ghcr.io)

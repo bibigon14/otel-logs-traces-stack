@@ -1,5 +1,0 @@
-# Grafana sidecar-provisioned datasource ConfigMaps (label grafana_datasource=1).
-# Planned files:
-#   datasource-loki.yaml   - points at loki.observability.svc:3100, traces-to-logs via trace_id
-#   datasource-tempo.yaml  - points at tempo.observability.svc:3200, logs-to-traces + metrics-to-traces
-#   dashboard-tri-signal.yaml - unified metrics/logs/traces dashboard (ConfigMap, grafana_dashboard=1)

@@ -1,0 +1,101 @@
+---
+# OTEL Collector gateway config.
+# Pipelines:
+#   traces  : OTLP in -> batch -> OTLP exporter -> tempo:4317
+#   logs    : OTLP in -> batch -> loki/http exporter -> loki:3100
+#   metrics : OTLP in + hostmetrics -> batch -> VMSingle remote_write
+#
+# k8sattributes enrichment adds pod/namespace/node labels to every
+# signal so the correlation story in docs/architecture.md actually
+# works - without it a trace span and a log line could not be joined
+# on pod name.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otelcol-gateway-config
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: otelcol-gateway
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 300
+        spike_limit_mib: 50
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+          labels:
+            - tag_name: app
+              key: app.kubernetes.io/name
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: connection
+      resource:
+        attributes:
+          - key: cluster
+            value: oci-ampere-a1
+            action: upsert
+
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.observability.svc:4317
+        tls:
+          insecure: true
+      otlphttp/loki:
+        endpoint: http://loki.observability.svc:3100/otlp
+      prometheusremotewrite:
+        endpoint: http://vmsingle-main.vm.svc:8429/api/v1/write
+        resource_to_telemetry_conversion:
+          enabled: true
+      debug:
+        verbosity: basic
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resource, batch]
+          exporters: [otlp/tempo]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resource, batch]
+          exporters: [otlphttp/loki]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [prometheusremotewrite]
+      telemetry:
+        logs:
+          level: info

@@ -1,0 +1,40 @@
+---
+# Loki datasource for the shared Grafana (kube-prometheus-stack ships
+# it with a sidecar watching `grafana_datasource=1` labels).
+#
+# traces_to_logs link + derivedFields on trace_id turn Grafana's
+# Explore pane into the correlation UI described in docs/architecture.md -
+# clicking a Tempo span's trace_id opens Loki pre-filtered for the
+# same trace.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-loki
+  namespace: monitoring
+  labels:
+    grafana_datasource: '1'
+data:
+  loki.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.observability.svc:3100
+        isDefault: false
+        editable: false
+        jsonData:
+          timeout: 60
+          maxLines: 5000
+          # Grafana reads trace_id out of a log line's `trace_id` field
+          # (added by the OTEL SDK) and renders it as a clickable link
+          # that opens Tempo with that id selected.
+          derivedFields:
+            - name: TraceID
+              matcherRegex: 'trace_id=(\w+)'
+              url: '$${__value.raw}'
+              datasourceUid: tempo
+            - name: TraceID
+              matcherRegex: '"trace_id":"(\w+)"'
+              url: '$${__value.raw}'
+              datasourceUid: tempo

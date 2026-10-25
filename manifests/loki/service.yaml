@@ -1,0 +1,41 @@
+---
+# Headless Service for the StatefulSet DNS record (loki-0.loki-headless).
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-headless
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: loki
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: loki
+  ports:
+    - name: http
+      port: 3100
+      targetPort: http
+    - name: grpc
+      port: 9095
+      targetPort: grpc
+---
+# ClusterIP Service that OTEL Collector and Grafana use to reach Loki.
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: loki
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: loki
+  ports:
+    - name: http
+      port: 3100
+      targetPort: http
+    - name: grpc
+      port: 9095
+      targetPort: grpc

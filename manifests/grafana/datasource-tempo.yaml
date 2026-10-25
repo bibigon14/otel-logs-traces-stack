@@ -1,0 +1,59 @@
+---
+# Tempo datasource with:
+# - tracesToLogsV2: span -> Loki query filtered by trace_id + pod labels
+# - tracesToMetrics: span -> Prometheus/VMSingle query for request-rate/errors
+# - serviceMap: enabled, needs Tempo metrics_generator -> VMSingle in v0.2
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-tempo
+  namespace: monitoring
+  labels:
+    grafana_datasource: '1'
+data:
+  tempo.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        access: proxy
+        url: http://tempo.observability.svc:3200
+        isDefault: false
+        editable: false
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: loki
+            spanStartTimeShift: '-5m'
+            spanEndTimeShift: '5m'
+            tags:
+              - key: service.name
+                value: service
+              - key: k8s.pod.name
+                value: pod
+              - key: k8s.namespace.name
+                value: namespace
+            filterByTraceID: true
+            filterBySpanID: false
+          tracesToMetrics:
+            datasourceUid: prometheus
+            spanStartTimeShift: '-2m'
+            spanEndTimeShift: '2m'
+            tags:
+              - key: service.name
+                value: service
+            queries:
+              - name: 'Request rate'
+                query: 'sum(rate(traces_spanmetrics_calls_total{$$__tags}[5m]))'
+              - name: 'Error rate'
+                query: 'sum(rate(traces_spanmetrics_calls_total{$$__tags,status_code="STATUS_CODE_ERROR"}[5m]))'
+          serviceMap:
+            datasourceUid: prometheus
+          nodeGraph:
+            enabled: true
+          search:
+            hide: false
+          lokiSearch:
+            datasourceUid: loki
+          spanBar:
+            type: 'Duration'

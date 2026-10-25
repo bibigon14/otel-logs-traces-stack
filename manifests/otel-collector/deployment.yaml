@@ -1,0 +1,97 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otelcol-gateway
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: otelcol-gateway
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otelcol-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: otelcol-gateway
+      annotations:
+        # Roll the pod on ConfigMap change without needing to touch
+        # the Deployment spec. The hash goes here when `kubectl apply`
+        # runs via a `kubectl set env` chain or a Kustomize generator;
+        # for raw manifests we rely on a manual rollout restart.
+        configmap-checksum: 'manual-rollout-restart'
+    spec:
+      serviceAccountName: otelcol-gateway
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: otelcol
+          image: otel/opentelemetry-collector-contrib:0.113.0
+          args:
+            - '--config=/etc/otelcol/config.yaml'
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: healthz
+              containerPort: 13133
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: healthz
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: healthz
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol
+      volumes:
+        - name: config
+          configMap:
+            name: otelcol-gateway-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otelcol-gateway
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: otelcol-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: otelcol-gateway
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
