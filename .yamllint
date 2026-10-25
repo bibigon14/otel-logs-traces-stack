@@ -1,0 +1,18 @@
+# yamllint config for otel-logs-traces-stack
+# Mirrors vm-observability and kafka-slo-observability so all three repos
+# lint identically.
+---
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  comments:
+    min-spaces-from-content: 1
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off']
+  document-start: disable
+  indentation:
+    spaces: 2
+    indent-sequences: true

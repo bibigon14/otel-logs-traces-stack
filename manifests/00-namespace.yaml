@@ -1,0 +1,16 @@
+---
+# One namespace holds Loki, Tempo, the OTEL Collector gateway and the
+# Alloy DaemonSet. Grafana lives in `monitoring/` with the existing
+# kube-prometheus-stack and reaches these over the cluster network.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    name: observability
+    # Enforce baseline PodSecurity on the namespace so a hostNetwork
+    # DaemonSet (Alloy, when added) has to raise its own exception
+    # instead of this ns being wide-open by default.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

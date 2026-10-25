@@ -1,0 +1,15 @@
+# local scratch
+.DS_Store
+*.swp
+*.swo
+
+# kubeconfig snippets copied in for local kubectl
+kubeconfig*
+.kubeconfig*
+
+# one-shot bootstrap scripts kept out of history
+.bootstrap.sh
+.finalize-portfolio.sh
+
+# screenshots waiting to be curated
+docs/screenshots/_raw/
